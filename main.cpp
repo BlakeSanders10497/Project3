@@ -10,13 +10,19 @@ struct Question
 {
     enum SearchElement
     {
-        AUTHOR, ASSIGNMENT, DEFAULT
+        AUTHOR, ASSIGNMENT, SEARCH_DEFAULT
+    };
+
+    enum SortElement
+    {
+        SUBSCRIBE, IMPORTANT, HELPFUL, SORT_DEFAULT
     };
 
 
     string title, author, date, questionContent, answerContent;
     int assignment, numSubscribe, numImportant, numHelpful;
-    SearchElement searchElement = DEFAULT;
+    SearchElement searchElement = SEARCH_DEFAULT;
+    SortElement sortElement = SORT_DEFAULT;
 
 
     Question(string csvLine)
@@ -74,14 +80,14 @@ struct Question
 
     bool operator<(const Question& rhs)
     {
-        switch(searchElement)
+        switch(sortElement)
         {
-            case AUTHOR:
-                return author < rhs.author;
-            case ASSIGNMENT:
-                return assignment < rhs.assignment;
-            default:
-                return false;
+            case SUBSCRIBE:
+                return numSubscribe < rhs.numSubscribe;
+            case IMPORTANT:
+                return numImportant < rhs.numImportant;
+            case HELPFUL:
+                return numHelpful < rhs.numHelpful;
         }
     }
 
@@ -90,7 +96,6 @@ struct Question
 
 int main()
 {
-    bool running = true;
 
     ifstream file("Data/questions.csv", fstream::in);
 
@@ -106,7 +111,7 @@ int main()
 
     cout << questions.size() << endl;
 
-    while(running)
+    while(true)
     {
         string input;
         cout << "\n\n" << endl;
@@ -118,45 +123,69 @@ int main()
 
         cin >> input;
 
-        try
-        {
-            int choice = stoi(input);
+        if(input == "exit") break;
 
-            switch(choice)
+        int choice = stoi(input);
+
+        switch(choice)
+        {
+            case 1:
+                for(Question& q : questions)
+                {
+                    q.searchElement = Question::AUTHOR;
+                }
+                break;
+            case 2:
+                for(Question& q : questions)
+                {
+                    q.searchElement = Question::ASSIGNMENT;
+                }
+        }
+
+        cout << "What is your search term?" << endl;
+        string searchTerm;
+        cin >> searchTerm;
+
+        vector<Question> results;
+        for(Question& q : questions)
+        {
+            if(q.matchesSearch(searchTerm)) results.push_back(q);
+        }
+
+        cout << "What would you like to sort by?" << endl;
+        cout << "1 -> subscribe" << endl;
+        cout << "2 -> important" << endl;
+        cout << "3 -> helpful" << endl;
+
+        string sSortTerm;
+        cin >> sSortTerm;
+        int sortTerm = stoi(sSortTerm);
+        for(Question& q : results)
+        {
+            switch(sortTerm)
             {
                 case 1:
-                    for(Question& q : questions)
-                    {
-                        q.searchElement = Question::AUTHOR;
-                    }
+                    q.sortElement = Question::SUBSCRIBE;
                     break;
                 case 2:
-                    for(Question& q : questions)
-                    {
-                        q.searchElement = Question::ASSIGNMENT;
-                    }
+                    q.sortElement = Question::IMPORTANT;
+                    break;
+                case 3:
+                    q.sortElement = Question::HELPFUL;
+                    break;
             }
-
-            cout << "What is your search term?" << endl;
-            string searchTerm;
-            cin >> searchTerm;
-
-            vector<Question> results;
-            for(Question& q : questions)
-            {
-                if(q.matchesSearch(searchTerm)) results.push_back(q);
-            }
-
-            cout << "done" << endl;
-
         }
-        catch(exception e) {
-            if(input == "exit")
-            {
-                running = false;
-            }
-            else cout << "bad input" << endl;
+
+        vector<Question> resultsForOtherSort = results;
+        std::sort(results.begin(), results.end());
+
+        cout << "done" << endl;
+
+        for(int i = 0; i < 100; i++)
+        {
+            cout << results[i].numSubscribe << endl;
         }
+
     }
 
     return 0;
