@@ -2,7 +2,6 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <algorithm>
 #include <chrono>
 
 using namespace std;
@@ -38,7 +37,7 @@ struct Question
 {
     enum SearchElement
     {
-        AUTHOR, ASSIGNMENT, SEARCH_DEFAULT
+        AUTHOR, ASSIGNMENT, RETURN_ALL
     };
     enum SortElement
     {
@@ -49,23 +48,12 @@ struct Question
     string title, author, date, questionContent, answerContent;
     int assignment, numSubscribe, numImportant, numHelpful;
 
-    SearchElement searchElement = SEARCH_DEFAULT;
+    SearchElement searchElement = RETURN_ALL;
     SortElement sortElement = SORT_DEFAULT;
 
 
     Question(string csvLine)
     {
-        /*
-         * title = generate_phrase(words, 3)
-            author = generate_phrase(words,1)
-            assignment =generate_phrase(words,1)
-            date = int(time.time()) + randint(-100000, 0)
-            message  = generate_phrase(words,12)
-            numSubscribe     = randint(1, 50)
-            numImportant     = randint(1, 50)
-            answer1content   = generate_phrase(words, 12)
-            numHelpful       = randint(1, 50)
-         */
         stringstream ss(csvLine);
         string tmp;
 
@@ -101,6 +89,8 @@ struct Question
                 return author == searchTerm;
             case ASSIGNMENT:
                 return assignment == stoi(searchTerm);
+            case RETURN_ALL:
+                return true;
             default:
                 return false;
         }
@@ -153,6 +143,13 @@ struct Question
             case HELPFUL:
                 return numHelpful != rhs.numHelpful;
         }
+    }
+
+    // Adapted from https://docs.microsoft.com/en-us/cpp/standard-library/overloading-the-output-operator-for-your-own-classes?view=msvc-160
+    friend ostream& operator<<(ostream& os, const Question& question)
+    {
+        os << "Title: " << question.title << "; Author: " << question.author << "; Question: " << question.questionContent << endl;
+        return os;
     }
 
 };
@@ -210,6 +207,7 @@ int main()
         cout << "What do you want to search by?" << endl;
         cout << "1 -> Author content" << endl;
         cout << "2 -> Assignment content" << endl;
+        cout << "3 -> No search; get all data" << endl;
         cout << "exit -> Exit program" << endl;
 
         cin >> input;
@@ -217,6 +215,8 @@ int main()
         if(input == "exit") break;
 
         int choice = stoi(input);
+
+        bool doSearch = true;
 
         switch(choice)
         {
@@ -231,17 +231,38 @@ int main()
                 {
                     q.searchElement = Question::ASSIGNMENT;
                 }
+                break;
+            case 3:
+                doSearch = false;
+                for(Question& q : questions)
+                {
+                    q.searchElement = Question::RETURN_ALL;
+                }
         }
 
-        cout << "What is your search term?" << endl;
-        string searchTerm;
-        cin >> searchTerm;
 
         vector<Question> results;
-        for(Question& q : questions)
+
+        if(doSearch)
         {
-            if(q.matchesSearch(searchTerm)) results.push_back(q);
+            cout << "What is your search term?" << endl;
+            string searchTerm;
+            cin >> searchTerm;
+
+
+            for(Question& q : questions)
+            {
+                if(q.matchesSearch(searchTerm)) results.push_back(q);
+            }
+            cout << "Search complete with " << results.size() << " matches.\n" << endl;
         }
+        else
+        {
+            results = questions;
+            cout << "Returning all " << results.size() << " items.\n" << endl;
+        }
+
+
 
         cout << "What would you like to sort by?" << endl;
         cout << "1 -> subscribe" << endl;
@@ -274,23 +295,27 @@ int main()
 
         timer.reset();
         quickSort(resultsQuicksort, 0, resultsQuicksort.size() - 1);
-        cout << "Quick sort took " << timer.elapsed() << "s" << endl;
+        cout << "Quick sort took " << timer.elapsed() << " seconds" << endl;
 
         vector<Question> resultsShellSort = results;
 
         timer.reset();
         shellSort(resultsShellSort);
-        cout << "Shell sort took " << timer.elapsed() << "s" << endl;
+        cout << "Shell sort took " << timer.elapsed() << " seconds\n" << endl;
 
-        sort(results.begin(), results.end());
-        cout << "Comparisons:" << endl;
-        cout << compare(results, resultsQuicksort) << endl;
-        cout << compare(resultsQuicksort, resultsShellSort) << endl;
+        int count = 0;
+        for(Question& q : resultsShellSort)
+        {
+            if(count == 20)
+            {
+                cout << "Stopping at first 20 results" << endl;
+                break;
+            }
 
-//        for(int i = 0; i < 1000; i++)
-//        {
-//            cout << results[i].numSubscribe << " " << resultsShellSort[i].numSubscribe << endl;
-//        }
+            cout << q;
+
+            count ++;
+        }
 
     }
 
