@@ -3,8 +3,36 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <chrono>
 
 using namespace std;
+
+
+// from https://www.learncpp.com/cpp-tutorial/8-16-timing-your-code/
+class Timer
+{
+private:
+    // Type aliases to make accessing nested type easier
+    using clock_t = std::chrono::high_resolution_clock;
+    using second_t = std::chrono::duration<double, std::ratio<1> >;
+
+    std::chrono::time_point<clock_t> m_beg;
+
+public:
+    Timer() : m_beg(clock_t::now())
+    {
+    }
+
+    void reset()
+    {
+        m_beg = clock_t::now();
+    }
+
+    double elapsed() const
+    {
+        return std::chrono::duration_cast<second_t>(clock_t::now() - m_beg).count();
+    }
+};
 
 struct Question
 {
@@ -12,7 +40,6 @@ struct Question
     {
         AUTHOR, ASSIGNMENT, SEARCH_DEFAULT
     };
-
     enum SortElement
     {
         SUBSCRIBE, IMPORTANT, HELPFUL, SORT_DEFAULT
@@ -21,6 +48,7 @@ struct Question
 
     string title, author, date, questionContent, answerContent;
     int assignment, numSubscribe, numImportant, numHelpful;
+
     SearchElement searchElement = SEARCH_DEFAULT;
     SortElement sortElement = SORT_DEFAULT;
 
@@ -102,12 +130,44 @@ struct Question
                 return numHelpful > rhs.numHelpful;
         }
     }
+    bool operator==(const Question& rhs)
+    {
+        switch(sortElement)
+        {
+            case SUBSCRIBE:
+                return numSubscribe == rhs.numSubscribe;
+            case IMPORTANT:
+                return numImportant == rhs.numImportant;
+            case HELPFUL:
+                return numHelpful == rhs.numHelpful;
+        }
+    }
+    bool operator!=(const Question& rhs) { return !(operator==(rhs)); }
 
 };
 
 
 void quickSort(vector<Question>& array, int low, int high);
 int partition(vector<Question>& array,int low, int high);
+
+void shellSort(vector<Question>& array);
+
+
+bool compare(vector<Question>& v1, vector<Question>& v2)
+{
+    if(v1.size() != v2.size())
+    {
+        cout << "Size of arrays don't match!!!" << endl;
+        return false;
+    }
+
+    for(int i = 0; i < v1.size(); i++)
+    {
+        if(v1[i] != v2[i]) return false;
+    }
+
+    return true;
+}
 
 int main()
 {
@@ -193,17 +253,14 @@ int main()
 
         std::sort(results.begin(), results.end());
 
-        vector<Question> resultsForOtherSort = results;
-        quickSort(resultsForOtherSort, 0, resultsForOtherSort.size() - 1);
+        vector<Question> resultsQuicksort = results;
+        quickSort(resultsQuicksort, 0, resultsQuicksort.size() - 1);
 
-        cout << "done with std::sort\n" << endl;
+        vector<Question> resultsShellSort = results;
+        shellSort(resultsShellSort);
 
-        for(int i = 0; i < 100; i++)
-        {
-            cout << results[i + 3500].numSubscribe << "     " << resultsForOtherSort[i + 3500].numSubscribe << endl;
-        }
-
-
+        cout << compare(results, resultsQuicksort) << endl;
+        cout << compare(resultsQuicksort, resultsShellSort) << endl;
 
     }
 
@@ -220,8 +277,6 @@ void quickSort(vector<Question>& array, int low, int high)
         quickSort(array, p + 1, high);
     }
 }
-
-
 int partition(vector<Question>& array,int low, int high)
 {
     Question& pivot = array[(high + low) / 2];
@@ -242,5 +297,29 @@ int partition(vector<Question>& array,int low, int high)
 
         if(i >= j) return j;
         swap(array[i], array[j]);
+    }
+}
+
+void shellSort(vector<Question>& array)
+{
+    vector<int> gaps = {1750, 701, 301, 132, 57, 23, 10, 4, 1}; // Credit to Marcin Ciura for the gaps; https://en.wikipedia.org/wiki/Shellsort
+
+    for(int gap : gaps)
+    {
+        // Gapped insertion sort
+        for(int i = gap; i < array.size(); i++)
+        {
+            Question& temp = array[i];
+
+            int j = i;
+            for(; j >= gap; j -= gap)
+            {
+                if(array[j - gap] < temp) break;
+
+                array[j] = array[j - gap];
+            }
+
+            array[j] = temp;
+        }
     }
 }
