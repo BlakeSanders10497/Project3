@@ -90,9 +90,24 @@ struct Question
                 return numHelpful < rhs.numHelpful;
         }
     }
+    bool operator>(const Question& rhs)
+    {
+        switch(sortElement)
+        {
+            case SUBSCRIBE:
+                return numSubscribe > rhs.numSubscribe;
+            case IMPORTANT:
+                return numImportant > rhs.numImportant;
+            case HELPFUL:
+                return numHelpful > rhs.numHelpful;
+        }
+    }
 
 };
 
+
+void quickSort(vector<Question>& array, int low, int high);
+int partition(vector<Question>& array,int low, int high);
 
 int main()
 {
@@ -176,17 +191,56 @@ int main()
             }
         }
 
-        vector<Question> resultsForOtherSort = results;
         std::sort(results.begin(), results.end());
 
-        cout << "done" << endl;
+        vector<Question> resultsForOtherSort = results;
+        quickSort(resultsForOtherSort, 0, resultsForOtherSort.size() - 1);
+
+        cout << "done with std::sort\n" << endl;
 
         for(int i = 0; i < 100; i++)
         {
-            cout << results[i].numSubscribe << endl;
+            cout << results[i + 3500].numSubscribe << "     " << resultsForOtherSort[i + 3500].numSubscribe << endl;
         }
+
+
 
     }
 
     return 0;
+}
+
+void quickSort(vector<Question>& array, int low, int high)
+{
+    if(low < high)
+    {
+        // Index of partitioning
+        int p = partition(array, low, high);
+        quickSort(array, low, p);
+        quickSort(array, p + 1, high);
+    }
+}
+
+
+int partition(vector<Question>& array,int low, int high)
+{
+    Question& pivot = array[(high + low) / 2];
+    int i  = low - 1;
+    int j = high + 1;
+
+    while(true)
+    {
+        do
+        {
+            i++;
+        } while(array[i] < pivot);
+
+        do
+        {
+            j--;
+        } while(array[j] > pivot);
+
+        if(i >= j) return j;
+        swap(array[i], array[j]);
+    }
 }
