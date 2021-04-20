@@ -142,7 +142,18 @@ struct Question
                 return numHelpful == rhs.numHelpful;
         }
     }
-    bool operator!=(const Question& rhs) { return !(operator==(rhs)); }
+    bool operator!=(const Question& rhs)
+    {
+        switch(sortElement)
+        {
+            case SUBSCRIBE:
+                return numSubscribe != rhs.numSubscribe;
+            case IMPORTANT:
+                return numImportant != rhs.numImportant;
+            case HELPFUL:
+                return numHelpful != rhs.numHelpful;
+        }
+    }
 
 };
 
@@ -161,12 +172,17 @@ bool compare(vector<Question>& v1, vector<Question>& v2)
         return false;
     }
 
+    bool matching = true;
     for(int i = 0; i < v1.size(); i++)
     {
-        if(v1[i] != v2[i]) return false;
+        if(v1[i] != v2[i])
+        {
+            cout << "compare() failed at i = " << i << endl;
+            matching = false;
+        }
     }
 
-    return true;
+    return matching;
 }
 
 int main()
@@ -251,16 +267,30 @@ int main()
             }
         }
 
-        std::sort(results.begin(), results.end());
+
+        Timer timer;
 
         vector<Question> resultsQuicksort = results;
+
+        timer.reset();
         quickSort(resultsQuicksort, 0, resultsQuicksort.size() - 1);
+        cout << "Quick sort took " << timer.elapsed() << "s" << endl;
 
         vector<Question> resultsShellSort = results;
-        shellSort(resultsShellSort);
 
+        timer.reset();
+        shellSort(resultsShellSort);
+        cout << "Shell sort took " << timer.elapsed() << "s" << endl;
+
+        sort(results.begin(), results.end());
+        cout << "Comparisons:" << endl;
         cout << compare(results, resultsQuicksort) << endl;
         cout << compare(resultsQuicksort, resultsShellSort) << endl;
+
+//        for(int i = 0; i < 1000; i++)
+//        {
+//            cout << results[i].numSubscribe << " " << resultsShellSort[i].numSubscribe << endl;
+//        }
 
     }
 
@@ -273,49 +303,41 @@ void quickSort(vector<Question>& array, int low, int high)
     {
         // Index of partitioning
         int p = partition(array, low, high);
-        quickSort(array, low, p);
+        quickSort(array, low, p - 1);
         quickSort(array, p + 1, high);
     }
 }
-int partition(vector<Question>& array,int low, int high)
+int partition(vector<Question>& array, int low, int high)
 {
-    Question& pivot = array[(high + low) / 2];
-    int i  = low - 1;
-    int j = high + 1;
+    Question& pivot = array[high];
+    int i = low;
 
-    while(true)
+    for(int j = low; j < high; j++)
     {
-        do
+        if(array[j] < pivot)
         {
+            swap(array[i], array[j]);
             i++;
-        } while(array[i] < pivot);
-
-        do
-        {
-            j--;
-        } while(array[j] > pivot);
-
-        if(i >= j) return j;
-        swap(array[i], array[j]);
+        }
     }
+    swap(array[i], array[high]);
+    return i;
 }
 
 void shellSort(vector<Question>& array)
 {
-    vector<int> gaps = {1750, 701, 301, 132, 57, 23, 10, 4, 1}; // Credit to Marcin Ciura for the gaps; https://en.wikipedia.org/wiki/Shellsort
+    vector<int> gaps = {701, 301, 132, 57, 23, 10, 4, 1}; // Credit to Marcin Ciura for the gaps; https://en.wikipedia.org/wiki/Shellsort
 
     for(int gap : gaps)
     {
         // Gapped insertion sort
-        for(int i = gap; i < array.size(); i++)
+        for(int i = gap; i < array.size(); i++) // FIXME: what is n???
         {
-            Question& temp = array[i];
+            Question temp = array[i];
 
-            int j = i;
-            for(; j >= gap; j -= gap)
+            int j;
+            for(j = i; (j >= gap) && (array[j - gap] > temp); j -= gap)
             {
-                if(array[j - gap] < temp) break;
-
                 array[j] = array[j - gap];
             }
 
